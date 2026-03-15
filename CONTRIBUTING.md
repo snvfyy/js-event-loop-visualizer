@@ -124,7 +124,7 @@ Vitest requires ESM for its environment and setup APIs. These `.mjs` files use `
 
 - **acorn / acorn-walk** — AST parsing for source code extraction
 - **ink / react / chalk** — Terminal UI rendering
-- **magic-string** — Source-map-preserving string manipulation (used in `vite-plugin-elv.mjs`; loaded via `createRequire` to avoid esbuild externalizing it when vitest bundles the config)
+- **magic-string** — Source-map-preserving string manipulation (resolved from Vite's own dependencies at runtime; only used in `vite-plugin-elv.mjs`)
 
 ## Commit Messages
 
