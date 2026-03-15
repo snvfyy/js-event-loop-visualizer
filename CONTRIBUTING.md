@@ -10,7 +10,7 @@ Be respectful and constructive. Harassment or abusive behavior won't be tolerate
 
 ### Reporting Bugs
 
-Open an [issue](https://github.com/snvfyy/event-loop-visualizer/issues) with:
+Open an [issue](https://github.com/snvfyy/js-event-loop-visualizer/issues) with:
 
 - A clear title and description
 - Steps to reproduce the bug
@@ -31,8 +31,8 @@ Open an issue with the **feature request** label. Describe:
 1. **Fork** the repository
 2. **Clone** your fork locally:
   ```bash
-   git clone https://github.com/<your-username>/event-loop-visualizer.git
-   cd event-loop-visualizer
+   git clone https://github.com/<your-username>/js-event-loop-visualizer.git
+   cd js-event-loop-visualizer
   ```
 3. **Install** dependencies:
   ```bash

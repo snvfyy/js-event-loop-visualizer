@@ -1,18 +1,18 @@
 {
-  "name": "event-loop-visualizer",
-  "version": "0.2.1",
+  "name": "js-elv",
+  "version": "0.3.0",
   "description": "Interactive JS Event Loop Visualizer for the terminal",
   "author": "Snvfyy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/snvfyy/js-loop-visualizer.git"
+    "url": "git+https://github.com/snvfyy/js-event-loop-visualizer.git"
   },
-  "homepage": "https://github.com/snvfyy/js-loop-visualizer#readme",
+  "homepage": "https://github.com/snvfyy/js-event-loop-visualizer#readme",
   "bugs": {
-    "url": "https://github.com/snvfyy/js-loop-visualizer/issues"
+    "url": "https://github.com/snvfyy/js-event-loop-visualizer/issues"
   },
   "bin": {
-    "elv": "./bin/elv.js"
+    "js-elv": "./bin/elv.js"
   },
   "main": "src/cli.js",
   "exports": {

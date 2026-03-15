@@ -1,4 +1,4 @@
-# Event Loop Visualizer (`elv`)
+# Event Loop Visualizer (`js-elv`)
 
 **Step through JavaScript execution one event at a time.**
 
@@ -24,7 +24,7 @@ See how the call stack, microtask queue, macrotask queue, and variables change a
 
 ## 💡 Why?
 
-There are great online event loop visualizers out there, but they all run in a sandbox with toy snippets. `elv` runs against **your actual code**.
+There are great online event loop visualizers out there, but they all run in a sandbox with toy snippets. `js-elv` runs against **your actual code**.
 
 - **Debug real async bugs**: step through your actual `setTimeout`, `Promise`, and `await` chains to see exactly when callbacks fire and in what order.
 - **Learn by seeing**: watch how microtasks drain before macrotasks, why `await` yields, and how closures capture variables, all in a live terminal UI.
@@ -34,15 +34,15 @@ There are great online event loop visualizers out there, but they all run in a s
 ## 📦 Installation
 
 ```bash
-npm install -g event-loop-visualizer
+npm install -g js-elv
 ```
 
 ```bash
-npm install -D event-loop-visualizer
+npm install -D js-elv
 ```
 
 ```bash
-npx event-loop-visualizer examples/async-await.js
+npx js-elv examples/async-await.js
 ```
 
 ---
@@ -52,14 +52,14 @@ npx event-loop-visualizer examples/async-await.js
 ### Standalone scripts
 
 ```bash
-elv script.js
+js-elv script.js
 ```
 
 ### Jest and Vitest tests
 
 ```bash
-elv jest --testPathPatterns MyTest
-elv vitest run src/utils.test.ts
+js-elv jest --testPathPatterns MyTest
+js-elv vitest run src/utils.test.ts
 ```
 
 Each `it()` / `test()` block gets a visual boundary. Use `n` / `N` to jump between tests.
@@ -67,8 +67,8 @@ Each `it()` / `test()` block gets a visual boundary. Use `n` / `N` to jump betwe
 ### Any command
 
 ```bash
-elv --cmd "node server.js"
-elv --cmd "pnpm nx run my-project:test --skip-nx-cache"
+js-elv --cmd "node server.js"
+js-elv --cmd "pnpm nx run my-project:test --skip-nx-cache"
 ```
 
 ### Focus mode
@@ -76,8 +76,8 @@ elv --cmd "pnpm nx run my-project:test --skip-nx-cache"
 Narrow capture to a single file. Only events originating from (or passing through) the focused file are recorded:
 
 ```bash
-elv script.js --focus src/services/auth.js
-elv jest --testPathPatterns MyTest --focus src/__tests__/MyTest.spec.ts
+js-elv script.js --focus src/services/auth.js
+js-elv jest --testPathPatterns MyTest --focus src/__tests__/MyTest.spec.ts
 ```
 
 ### Examples
@@ -85,10 +85,10 @@ elv jest --testPathPatterns MyTest --focus src/__tests__/MyTest.spec.ts
 The `examples/` directory has scripts covering core event loop concepts. Run any of them and step through interactively:
 
 ```bash
-elv examples/async-await.js
-elv examples/closure-loop.js
-elv examples/nested-async.js
-elv examples/promise-executor.js
+js-elv examples/async-await.js
+js-elv examples/closure-loop.js
+js-elv examples/nested-async.js
+js-elv examples/promise-executor.js
 ```
 
 ---
@@ -117,7 +117,7 @@ elv examples/promise-executor.js
 
 ## 🔍 How It Works
 
-`elv` instruments your code using three layers:
+`js-elv` instruments your code using three layers:
 
 1. **AST transform**: Acorn parses your source and injects `__elvTrack()` / `__elvStep()` calls after variable mutations and function calls, enabling the Memory and Sync Step panels.
 2. **Global patching**: `setTimeout`, `setInterval`, `queueMicrotask`, `process.nextTick`, `Promise.prototype.then/catch`, and `console.`* are monkey-patched to emit events when callbacks are enqueued and executed.
@@ -168,8 +168,8 @@ Known limitations and edge cases
 | Limitation                 | Details                                                                                                                                                                                                                                                                                                 |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Pending promise timing** | `.then(fn)` on a pending promise shows `fn` entering the queue immediately. In reality it's enqueued on resolve. Execution order is still correct.                                                                                                                                                      |
-| **Jest fake timers**       | `jest.useFakeTimers()` replaces timers after elv's patches. Timer events won't be captured. Promise + variable tracking still work.                                                                                                                                                                     |
-| **TypeScript / JSX**       | Not natively supported. `elv script.ts` won't work. TS/JSX require a build step. Use `elv vitest run` or `elv jest` which handle TS/JSX via their own transforms. In test mode, line numbers come from compiled JS; minimal type annotations map correctly, but heavy generics or decorators may drift. |
+| **Jest fake timers**       | `jest.useFakeTimers()` replaces timers after js-elv's patches. Timer events won't be captured. Promise + variable tracking still work.                                                                                                                                                                     |
+| **TypeScript / JSX**       | Not natively supported. `js-elv script.ts` won't work. TS/JSX require a build step. Use `js-elv vitest run` or `js-elv jest` which handle TS/JSX via their own transforms. In test mode, line numbers come from compiled JS; minimal type annotations map correctly, but heavy generics or decorators may drift. |
 | **setInterval cap**        | Capped at 10 iterations to prevent infinite events. Configurable via `ELV_INTERVAL_CAP`.                                                                                                                                                                                                                |
 | **Event cap**              | 5000 events per process. Beyond this, a warning is shown. Configurable via `ELV_MAX_EVENTS`.                                                                                                                                                                                                            |
 | **Worker threads**         | `worker_threads` don't inherit `NODE_OPTIONS`. Code in workers won't be instrumented.                                                                                                                                                                                                                   |
@@ -185,7 +185,7 @@ Known limitations and edge cases
 
 | Variable           | Default | Description                                           |
 | ------------------ | ------- | ----------------------------------------------------- |
-| `ELV_TIMEOUT`      | `30000` | Safety timeout in ms for the `elv <script>` file mode |
+| `ELV_TIMEOUT`      | `30000` | Safety timeout in ms for the `js-elv <script>` file mode |
 | `ELV_MAX_EVENTS`   | `5000`  | Max events per process before capture stops           |
 | `ELV_INTERVAL_CAP` | `10`    | Max `setInterval` iterations to record per interval   |
 
@@ -196,11 +196,11 @@ Known limitations and edge cases
 
 ### Bugs
 
-**[See Bugs](https://github.com/snvfyy/js-loop-visualizer/issues?q=is%3Aissue+is%3Aopen+label%3Abug+sort%3Acreated-desc)**
+**[See Bugs](https://github.com/snvfyy/js-event-loop-visualizer/issues?q=is%3Aissue+is%3Aopen+label%3Abug+sort%3Acreated-desc)**
 
 ### Feature Requests
 
-**[See Feature Requests](https://github.com/snvfyy/js-loop-visualizer/issues?q=is%3Aissue+sort%3Areactions-%2B1-desc+label%3Aenhancement+is%3Aopen)**
+**[See Feature Requests](https://github.com/snvfyy/js-event-loop-visualizer/issues?q=is%3Aissue+sort%3Areactions-%2B1-desc+label%3Aenhancement+is%3Aopen)**
 
 ---
 

@@ -46,7 +46,7 @@ function main(argv) {
 
   if (process.platform === 'win32') {
     process.stderr.write(
-      'Error: elv does not support Windows natively.\n' +
+      'Error: js-elv does not support Windows natively.\n' +
       'Hint: Use WSL (Windows Subsystem for Linux) or Git Bash.\n'
     );
     process.exit(1);
@@ -59,7 +59,7 @@ function main(argv) {
 
   if (args.includes('--version') || args.includes('-V')) {
     const { version } = require('../package.json');
-    process.stdout.write('elv v' + version + '\n');
+    process.stdout.write('js-elv v' + version + '\n');
     process.exit(0);
   }
 
@@ -88,8 +88,8 @@ function main(argv) {
 
     if (runner === 'vitest' && !runnerArgs.includes('run') && !runnerArgs.includes('bench')) {
       process.stderr.write(
-        'Warning: `elv vitest` without "run" starts watch mode, which is not supported.\n' +
-        'Hint:    elv vitest run' + (runnerArgs.length ? ' ' + runnerArgs.join(' ') : '') + '\n'
+        'Warning: `js-elv vitest` without "run" starts watch mode, which is not supported.\n' +
+        'Hint:    js-elv vitest run' + (runnerArgs.length ? ' ' + runnerArgs.join(' ') : '') + '\n'
       );
       process.exit(1);
     }
@@ -105,7 +105,7 @@ function main(argv) {
   } else if (firstArg === '--cmd') {
     const command = args[1];
     if (!command) {
-      process.stderr.write('Error: --cmd requires a command string.\nHint:  elv --cmd "node server.js"\n');
+      process.stderr.write('Error: --cmd requires a command string.\nHint:  js-elv --cmd "node server.js"\n');
       process.exit(1);
     }
     runCommandMode(command, focusFile);
@@ -113,8 +113,8 @@ function main(argv) {
     const scriptPath = firstArg;
     if (!fs.existsSync(scriptPath)) {
       const suggestion = scriptPath.includes('test') || scriptPath.includes('spec')
-        ? '\nHint:  elv vitest run ' + scriptPath + '  (for test files)'
-        : '\nHint:  elv <script.js>  or  elv --help';
+        ? '\nHint:  js-elv vitest run ' + scriptPath + '  (for test files)'
+        : '\nHint:  js-elv <script.js>  or  js-elv --help';
       process.stderr.write('Error: file not found: ' + scriptPath + suggestion + '\n');
       process.exit(1);
     }
@@ -130,34 +130,34 @@ if (require.main === module) {
 function printHelp() {
   process.stdout.write([
     '',
-    '  Event Loop Visualizer (elv)',
+    '  Event Loop Visualizer (js-elv)',
     '',
     '  Usage:',
-    '    elv <script.js>              Run a JS file and visualize its event loop',
-    '    elv jest <jest-args>          Run Jest tests and visualize async activity',
-    '    elv vitest <vitest-args>      Run Vitest tests and visualize async activity',
-    '    elv --cmd "<command>"         Run any command and visualize captured events',
-    '    elv --focus <file>            Only capture events related to this file',
+    '    js-elv <script.js>              Run a JS file and visualize its event loop',
+    '    js-elv jest <jest-args>          Run Jest tests and visualize async activity',
+    '    js-elv vitest <vitest-args>      Run Vitest tests and visualize async activity',
+    '    js-elv --cmd "<command>"         Run any command and visualize captured events',
+    '    js-elv --focus <file>            Only capture events related to this file',
     '',
     '  Examples:',
-    '    elv examples/async-await.js',
-    '    elv jest --testPathPatterns MyTest',
-    '    elv vitest run src/utils.test.ts',
-    '    elv jest --testPathPatterns MyTest --focus src/__tests__/MyTest.spec.ts',
-    '    elv --cmd "node server.js"',
-    '    elv --cmd "pnpm nx run my-project:test --skip-nx-cache"',
-    '    elv --cmd "node app.js" --focus src/services/auth.js',
+    '    js-elv examples/async-await.js',
+    '    js-elv jest --testPathPatterns MyTest',
+    '    js-elv vitest run src/utils.test.ts',
+    '    js-elv jest --testPathPatterns MyTest --focus src/__tests__/MyTest.spec.ts',
+    '    js-elv --cmd "node server.js"',
+    '    js-elv --cmd "pnpm nx run my-project:test --skip-nx-cache"',
+    '    js-elv --cmd "node app.js" --focus src/services/auth.js',
     '',
     '  Options:',
-    '    --help, -h                     Show this help message',
-    '    --version, -V                  Show version number',
+    '    --help, -h                       Show this help message',
+    '    --version, -V                    Show version number',
     '',
     '  Environment:',
     '    ELV_TIMEOUT        Safety timeout in ms (default: 30000)',
     '    ELV_MAX_EVENTS     Max events per process (default: 5000)',
     '    ELV_INTERVAL_CAP   Max setInterval iterations to record (default: 10)',
     '',
-    '  Note: elv auto-detects your package manager (pnpm/yarn/npx) from lock files.',
+    '  Note: js-elv auto-detects your package manager (pnpm/yarn/npx) from lock files.',
     '',
   ].join('\n') + '\n');
 }
