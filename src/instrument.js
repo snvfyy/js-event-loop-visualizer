@@ -59,6 +59,8 @@ function createInstrumenter(target, options = {}) {
   let lastEventTime = Date.now();
   let insideFocusCallback = 0;
 
+  const _pendingTimerIds = new Set();
+
   // ── Focus-file helpers ──────────────────────────────────────────────
 
   const _focusPathCache = new Map();
@@ -187,8 +189,8 @@ function createInstrumenter(target, options = {}) {
       pendingTimers++;
 
       const callArgs = subtype === 'setTimeout' ? rawArgs.slice(1) : rawArgs;
-      return original.call(this, function __elvMacroCb() {
-        pendingTimers--;
+      const timerId = original.call(this, function __elvMacroCb() {
+        if (_pendingTimerIds.delete(timerId)) pendingTimers--;
         if (focusFile) insideFocusCallback++;
         emit({ type: 'CALLBACK_START', label, taskId, kind: 'macro', subtype, ...locFields });
         try {
@@ -201,6 +203,8 @@ function createInstrumenter(target, options = {}) {
           if (focusFile) insideFocusCallback--;
         }
       }, subtype === 'setTimeout' ? rawArgs[0] : undefined);
+      _pendingTimerIds.add(timerId);
+      return timerId;
     };
   }
 
@@ -256,6 +260,18 @@ function createInstrumenter(target, options = {}) {
     }
   }
 
+  // ── Patch clear functions (must track cancelled timers) ─────────────
+
+  target.clearTimeout = function __elvClearTimeout(id) {
+    if (_pendingTimerIds.delete(id)) pendingTimers--;
+    return _clearTimeout.call(this, id);
+  };
+
+  target.clearInterval = function __elvClearInterval(id) {
+    if (_pendingTimerIds.delete(id)) pendingTimers--;
+    return _clearInterval.call(this, id);
+  };
+
   // ── Patch macrotasks ────────────────────────────────────────────────
 
   target.setTimeout = wrapMacro(_setTimeout, 'setTimeout', (args) => 'setTimeout(fn, ' + (args[0] || 0) + ')');
@@ -277,7 +293,7 @@ function createInstrumenter(target, options = {}) {
     emit({ type: 'ENQUEUE_MACRO', label, taskId, kind: 'macro', subtype: 'setInterval', ...locFields });
     pendingTimers++;
 
-    return _setInterval.call(this, function __elvIntervalCb() {
+    const intervalId = _setInterval.call(this, function __elvIntervalCb() {
       iteration++;
       if (iteration > intervalCap) { cb.apply(this, args); return; }
 
@@ -297,6 +313,8 @@ function createInstrumenter(target, options = {}) {
         if (focusFile) insideFocusCallback--;
       }
     }, delay);
+    _pendingTimerIds.add(intervalId);
+    return intervalId;
   };
 
   // ── Patch microtasks ────────────────────────────────────────────────
@@ -494,7 +512,9 @@ function createInstrumenter(target, options = {}) {
     _trackedAsyncIds.clear();
     _thenPatchedAsyncIds.clear();
     target.setTimeout = _setTimeout;
+    target.clearTimeout = _clearTimeout;
     target.setInterval = _setInterval;
+    target.clearInterval = _clearInterval;
     if (_setImmediate) target.setImmediate = _setImmediate;
     if (_queueMicrotask) target.queueMicrotask = _queueMicrotask;
     if (_nextTick) {
