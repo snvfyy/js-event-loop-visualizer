@@ -1,6 +1,6 @@
 {
   "name": "js-elv",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Interactive JS Event Loop Visualizer for the terminal",
   "author": "Snvfyy",
   "repository": {
