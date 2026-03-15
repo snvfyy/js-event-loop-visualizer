@@ -156,6 +156,92 @@ describe('integration: closure-loop.js', () => {
   });
 });
 
+describe('integration: rate-limit-pattern.js', () => {
+  let events;
+
+  it('captures the full event lifecycle', async () => {
+    events = await runScript('examples/rate-limit-pattern.js');
+
+    const types = events.map(e => e.type);
+    expect(types[0]).toBe('SYNC_START');
+    expect(types[types.length - 1]).toBe('DONE');
+    expect(types).toContain('SYNC_END');
+  });
+
+  it('SYNC_END occurs before any CALLBACK_START', () => {
+    const syncEndIdx = events.findIndex(e => e.type === 'SYNC_END');
+    const firstCallbackIdx = events.findIndex(e => e.type === 'CALLBACK_START');
+
+    expect(syncEndIdx).toBeGreaterThan(-1);
+    expect(firstCallbackIdx).toBeGreaterThan(syncEndIdx);
+  });
+
+  it('enqueues both microtasks and one macrotask during sync phase', () => {
+    const syncEndIdx = events.findIndex(e => e.type === 'SYNC_END');
+    const syncPhase = events.slice(0, syncEndIdx);
+
+    const micros = syncPhase.filter(e => e.type === 'ENQUEUE_MICRO');
+    const macros = syncPhase.filter(e => e.type === 'ENQUEUE_MACRO');
+
+    expect(micros.length).toBeGreaterThanOrEqual(2);
+    expect(macros).toHaveLength(1);
+    expect(macros[0].subtype).toBe('setTimeout');
+  });
+
+  it('microtask callbacks fire before the macrotask callback', () => {
+    const callbacks = events.filter(e => e.type === 'CALLBACK_START');
+    const microCallbacks = callbacks.filter(e => e.kind === 'micro');
+    const macroCallbacks = callbacks.filter(e => e.kind === 'macro');
+
+    expect(macroCallbacks).toHaveLength(1);
+
+    const firstMicroIdx = events.indexOf(microCallbacks[0]);
+    const macroIdx = events.indexOf(macroCallbacks[0]);
+
+    expect(firstMicroIdx).toBeLessThan(macroIdx);
+  });
+
+  it('microtask enqueued during macrotask fires after the macrotask', () => {
+    const macroStart = events.findIndex(
+      e => e.type === 'CALLBACK_START' && e.kind === 'macro',
+    );
+    const macroEnd = events.findIndex(
+      (e, i) => i > macroStart && e.type === 'CALLBACK_END' && e.kind === 'macro',
+    );
+
+    const microEnqueuedDuringMacro = events.find(
+      (e, i) => i > macroStart && i < macroEnd && e.type === 'ENQUEUE_MICRO',
+    );
+    expect(microEnqueuedDuringMacro).toBeDefined();
+
+    const followUpCallback = events.find(
+      (e, i) => i > macroEnd && e.type === 'CALLBACK_START' && e.taskId === microEnqueuedDuringMacro.taskId,
+    );
+    expect(followUpCallback).toBeDefined();
+  });
+
+  it('pairs every CALLBACK_START with a CALLBACK_END', () => {
+    const starts = events.filter(e => e.type === 'CALLBACK_START');
+    const ends = events.filter(e => e.type === 'CALLBACK_END');
+
+    expect(starts).toHaveLength(ends.length);
+
+    for (const start of starts) {
+      const matchingEnd = ends.find(e => e.taskId === start.taskId);
+      expect(matchingEnd).toBeDefined();
+    }
+  });
+
+  it('logs "sync-end" during the synchronous phase', () => {
+    const syncEndIdx = events.findIndex(e => e.type === 'SYNC_END');
+    const logs = events
+      .filter((e, i) => e.type === 'LOG' && i < syncEndIdx)
+      .map(e => e.value);
+
+    expect(logs).toContain('sync-end');
+  });
+});
+
 describe('integration: promise-executor.js', () => {
   it('captures sync executor and then microtask', async () => {
     const events = await runScript('examples/promise-executor.js');

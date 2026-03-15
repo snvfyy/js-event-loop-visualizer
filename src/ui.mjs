@@ -306,6 +306,8 @@ function Panel({ label, color, focused, lines, height, width, phaseColor, badge,
     width,
     flexDirection: 'column',
     overflow: 'hidden',
+    flexShrink: 0,
+    flexGrow: 0,
   },
     h(Text, { bold: focused, color: borderColor, wrap: 'truncate' },
       (focused ? '\u25B8 ' : '') + label + badgeText + activeIndicator
@@ -676,13 +678,15 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
   const footerHeight = 3;
   const mainHeight = rows - headerHeight - footerHeight;
 
-  const callStackHeight = Math.max(4, Math.round(rows * 0.18) - 3);
-  const queuesHeight = Math.max(4, Math.round(rows * 0.20));
-  const sourceHeight = Math.max(5, callStackHeight + queuesHeight);
+  // Right column: CallStack + Queues row + EventLog = mainHeight
+  const callStackHeight = Math.max(4, Math.round(mainHeight * 0.18));
+  const queuesHeight = Math.max(4, Math.round(mainHeight * 0.22));
+  const eventLogHeight = mainHeight - callStackHeight - queuesHeight;
 
-  const consoleHeight = Math.max(5, Math.round(rows * 0.15));
-  const memoryHeight = Math.max(5, mainHeight - sourceHeight - consoleHeight);
-  const eventLogHeight = Math.max(5, mainHeight - callStackHeight - queuesHeight);
+  // Left column: Source (= CallStack + Queues so borders align) + Memory + Console = mainHeight
+  const sourceHeight = callStackHeight + queuesHeight;
+  const consoleHeight = Math.max(4, Math.round(mainHeight * 0.17));
+  const memoryHeight = mainHeight - sourceHeight - consoleHeight;
 
   // Inner content rows: panel height − 2 (border) − 1 (label line)
   const sourceContentH = Math.max(0, sourceHeight - 3);
@@ -693,12 +697,14 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
   const macroContentH = Math.max(0, queuesHeight - 3);
   const eventLogContentH = Math.max(0, eventLogHeight - 3);
 
-  // Content widths for pre-truncation (ANSI codes inflate Yoga layout measurement)
+  // Exact integer widths to avoid percentage rounding issues
   const leftColWidth = Math.floor(cols / 2);
   const rightColWidth = cols - leftColWidth;
   const leftContentW = Math.max(0, leftColWidth - 2);
   const rightContentW = Math.max(0, rightColWidth - 2);
-  const queueContentW = Math.max(0, Math.floor(rightColWidth / 2) - 2);
+  const microQueueWidth = Math.floor(rightColWidth / 2);
+  const macroQueueWidth = rightColWidth - microQueueWidth;
+  const queueContentW = Math.max(0, microQueueWidth - 2);
 
   // --- Build panel content ---
 
@@ -770,7 +776,7 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
     for (let i = offset; i < visibleEnd; i++) {
       const lineNum = i + 1;
       const num = String(lineNum).padStart(Math.max(3, padWidth), ' ');
-      const line = displayLines[i] || '';
+      const line = (displayLines[i] || '').replace(/\t/g, '  ');
 
       let formatted;
       if (highlightLine === lineNum) {
@@ -919,30 +925,30 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
     ),
 
     h(Box, { flexDirection: 'row', height: mainHeight },
-      h(Box, { flexDirection: 'column', width: '50%' },
+      h(Box, { flexDirection: 'column', width: leftColWidth, flexShrink: 0, flexGrow: 0 },
         h(Panel, { label: sourceLabel, color: sourceColor, focused: focusIndex === 0,
-          lines: sourceContent, height: sourceHeight, phaseColor: phaseTheme.primary }),
+          lines: sourceContent, height: sourceHeight, width: leftColWidth, phaseColor: phaseTheme.primary }),
         h(Panel, { label: 'Memory', color: 'magenta', focused: focusIndex === 1,
-          lines: memoryContent, height: memoryHeight, 
+          lines: memoryContent, height: memoryHeight, width: leftColWidth,
           badge: state.memory.size > 0 ? { text: String(state.memory.size), color: 'magenta' } : null }),
         h(Panel, { label: 'Console Output', color: 'yellow', focused: focusIndex === 2,
-          lines: consoleContent, height: consoleHeight }),
+          lines: consoleContent, height: consoleHeight, width: leftColWidth }),
       ),
 
-      h(Box, { flexDirection: 'column', width: '50%' },
+      h(Box, { flexDirection: 'column', width: rightColWidth, flexShrink: 0, flexGrow: 0 },
         h(Panel, { label: 'Call Stack', color: 'red', focused: focusIndex === 4,
-          lines: callStackContent, height: callStackHeight, isActive: isStackActive,
+          lines: callStackContent, height: callStackHeight, width: rightColWidth, isActive: isStackActive,
           badge: state.callStack.length > 0 ? { text: String(state.callStack.length), color: 'red' } : null }),
-        h(Box, { flexDirection: 'row', height: queuesHeight },
+        h(Box, { flexDirection: 'row', height: queuesHeight, flexShrink: 0, flexGrow: 0 },
           h(Panel, { label: 'Microtask Queue', color: 'cyan', focused: focusIndex === 5,
-            lines: microContent, width: '50%', height: queuesHeight, isActive: isMicroActive,
+            lines: microContent, width: microQueueWidth, height: queuesHeight, isActive: isMicroActive,
             badge: state.microQueue.length > 0 ? { text: String(state.microQueue.length), color: 'cyan' } : null }),
           h(Panel, { label: 'Macrotask Queue', color: 'yellow', focused: focusIndex === 6,
-            lines: macroContent, width: '50%', height: queuesHeight, isActive: isMacroActive,
+            lines: macroContent, width: macroQueueWidth, height: queuesHeight, isActive: isMacroActive,
             badge: state.macroQueue.length > 0 ? { text: String(state.macroQueue.length), color: 'yellow' } : null }),
         ),
         h(Panel, { label: 'Event Log', color: 'blue', focused: focusIndex === 3,
-          lines: eventLogContent, height: eventLogHeight,
+          lines: eventLogContent, height: eventLogHeight, width: rightColWidth,
           badge: state.log.length > 0 ? { text: String(state.log.length), color: 'blue' } : null }),
       ),
     ),

@@ -253,6 +253,77 @@ describe('memory highlight on backward navigation', () => {
   });
 });
 
+describe('layout width with tab-indented source code', () => {
+  afterEach(() => { cleanup(); });
+
+  const TAB_SOURCE = [
+    'import x from "blablabla";',
+    '',
+    'test("rate-limit", async () => {',
+    '\tconst queue = new PQueue({',
+    '\t\tinterval: 100,',
+    '\t\tintervalCap: 1,',
+    '\t\tautoStart: false,',
+    '\t});',
+    '',
+    '\tconst results = [];',
+    '\tfor (let i = 0; i < 4; i++) {',
+    '\t\tpromises.push(queue.add(async () => {',
+    '\t\t\tresults.push(i);',
+    '\t\t\treturn i;',
+    '\t\t}));',
+    '\t}',
+    '});',
+  ].join('\n');
+
+  const TAB_EVENTS = [
+    { type: 'SYNC_START', label: 'rate-limit.ts', seq: 0, ts: 1000 },
+    { type: 'ENQUEUE_MACRO', label: 'setTimeout(fn, 100)', taskId: 1, kind: 'macro', subtype: 'setTimeout', seq: 1, ts: 1001 },
+    { type: 'ENQUEUE_MICRO', label: 'Promise.resolve()', taskId: 2, kind: 'micro', subtype: 'promise', seq: 2, ts: 1002, line: 4 },
+    { type: 'LOG', value: 'task executed', subtype: 'log', seq: 3, ts: 1003 },
+    { type: 'SYNC_END', seq: 4, ts: 1004 },
+    { type: 'CALLBACK_START', label: 'Promise.resolve()', taskId: 2, kind: 'micro', subtype: 'promise', seq: 5, ts: 1005 },
+    { type: 'CALLBACK_END', taskId: 2, kind: 'micro', subtype: 'promise', seq: 6, ts: 1006 },
+    { type: 'CALLBACK_START', label: 'setTimeout(fn, 100)', taskId: 1, kind: 'macro', subtype: 'setTimeout', seq: 7, ts: 1007 },
+    { type: 'CALLBACK_END', taskId: 1, kind: 'macro', subtype: 'setTimeout', seq: 8, ts: 1008 },
+    { type: 'DONE', seq: 9, ts: 1009 },
+  ];
+
+  const INK_DEFAULT_COLS = 100;
+
+  function displayWidth(str) {
+    return str.replace(/\t/g, '        ').length;
+  }
+
+  function assertNoLineOverflow(frame) {
+    const lines = stripAnsi(frame).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const w = displayWidth(lines[i]);
+      expect(w, `line ${i + 1} overflows (${w} > ${INK_DEFAULT_COLS}): ${lines[i]}`).toBeLessThanOrEqual(INK_DEFAULT_COLS);
+    }
+  }
+
+  it('tabs in source code are converted to spaces before rendering', () => {
+    const frame = getFrame(renderApp(TAB_EVENTS, TAB_SOURCE).lastFrame);
+    expect(frame).not.toContain('\t');
+  });
+
+  it('no line exceeds terminal width on initial render', () => {
+    const frame = getFrame(renderApp(TAB_EVENTS, TAB_SOURCE).lastFrame);
+    assertNoLineOverflow(frame);
+  });
+
+  it('no line exceeds terminal width after stepping through events', async () => {
+    const { lastFrame, stdin } = await renderAndWait(TAB_EVENTS, TAB_SOURCE);
+
+    await stepForward(stdin, 5);
+    assertNoLineOverflow(getFrame(lastFrame));
+
+    await stepForward(stdin, TAB_EVENTS.length - 5);
+    assertNoLineOverflow(getFrame(lastFrame));
+  });
+});
+
 describe('macrotask lifecycle', () => {
   afterEach(() => { cleanup(); });
 
