@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 const h = createElement;
 
-const DEFAULT_PLAY_SPEED_MS = 800;
+const DEFAULT_PLAY_SPEED_MS = 500;
 const MIN_PLAY_SPEED_MS = 100;
 const MAX_PLAY_SPEED_MS = 3000;
 const SPEED_STEP_MS = 100;
@@ -16,12 +16,12 @@ const PANEL_COUNT = 7;
 
 // Phase-based color themes
 const PHASE_COLORS = {
-  'Ready': { primary: 'gray', accent: 'white' },
+  'Ready': { primary: 'gray', accent: 'gray' },
   'Synchronous': { primary: 'green', accent: 'greenBright' },
   'Sync Complete': { primary: 'green', accent: 'greenBright' },
   'Microtasks': { primary: 'cyan', accent: 'cyanBright' },
-  'Macrotasks': { primary: 'yellow', accent: 'yellowBright' },
-  'Complete': { primary: 'gray', accent: 'white' },
+  'Macrotasks': { primary: 'redBright', accent: 'redBright' },
+  'Complete': { primary: 'gray', accent: 'gray' },
 };
 
 // Pre-compiled sets for O(1) keyword/builtin lookup
@@ -177,14 +177,14 @@ function applyEvent(state, event) {
     case 'LOG': {
       const val = event.value || '';
       state.console.push('> ' + val);
-      state.log.push(ts + chalk.gray('\u2502') + ' ' + chalk.white(val) + fileTag);
+      state.log.push(ts + chalk.gray('\u2502') + ' ' + val + fileTag);
       break;
     }
 
     case 'ENQUEUE_MACRO': {
       const label = event.label || 'macrotask';
       state.macroQueue.push({ label, taskId: event.taskId });
-      state.log.push(ts + chalk.bgYellow.black('  +T   ') + ' ' + chalk.yellow('\u2192') + ' ' + label + fileTag);
+      state.log.push(ts + chalk.bgRedBright.black('  +T   ') + ' ' + chalk.redBright('\u2192') + ' ' + label + fileTag);
       break;
     }
 
@@ -204,7 +204,7 @@ function applyEvent(state, event) {
       } else {
         state.macroQueue = state.macroQueue.filter(item => item.taskId !== event.taskId);
         state.phase = 'Macrotasks';
-        state.log.push(ts + chalk.bgYellow.black('  \u25B6T   ') + ' ' + chalk.yellowBright.bold(label) + fileTag);
+        state.log.push(ts + chalk.bgRedBright.black('  \u25B6T   ') + ' ' + chalk.redBright.bold(label) + fileTag);
       }
       state.callStack.push(label);
       break;
@@ -227,7 +227,7 @@ function applyEvent(state, event) {
         const truncatedValue = val.length > MAX_MEMORY_DISPLAY_LEN
           ? val.substring(0, MAX_MEMORY_DISPLAY_LEN - 3) + '...'
           : val;
-        state.log.push(ts + chalk.bgMagenta.white('  VAR  ') + ' ' + chalk.magentaBright(event.label) + ' = ' + chalk.white(truncatedValue) + fileTag);
+        state.log.push(ts + chalk.bgMagenta.white('  VAR  ') + ' ' + chalk.magentaBright(event.label) + ' = ' + truncatedValue + fileTag);
       }
       break;
 
@@ -331,8 +331,8 @@ function getTypeIcon(val) {
 
 function getTaskBadge(label) {
   if (label.includes('Promise') || label.includes('then') || label.includes('await')) return chalk.cyan('\u25CF');
-  if (label.includes('setTimeout')) return chalk.yellow('\u25D4');
-  if (label.includes('setInterval')) return chalk.yellow('\u25D1');
+  if (label.includes('setTimeout')) return chalk.redBright('\u25D4');
+  if (label.includes('setInterval')) return chalk.redBright('\u25D1');
   if (label.includes('queueMicrotask')) return chalk.cyan('\u25CB');
   if (label.includes('nextTick')) return chalk.magenta('\u25C8');
   return chalk.gray('\u25AA');
@@ -374,7 +374,7 @@ function HelpOverlay({ width, height }) {
     chalk.bold.cyan('  EVENT LOOP VISUALIZER - HELP'),
     chalk.gray('  ' + '\u2500'.repeat(40)),
     '',
-    chalk.bold.white('  NAVIGATION'),
+    chalk.bold('  NAVIGATION'),
     '    ' + chalk.yellow('\u2190 / h') + '    Previous step',
     '    ' + chalk.yellow('\u2192 / l') + '    Next step',
     '    ' + chalk.yellow('\u2191 / k') + '    Scroll up (focused panel)',
@@ -382,31 +382,31 @@ function HelpOverlay({ width, height }) {
     '    ' + chalk.yellow('Tab') + '       Cycle panel focus',
     '    ' + chalk.yellow('Shift+Tab') + ' Reverse cycle focus',
     '',
-    chalk.bold.white('  PLAYBACK'),
+    chalk.bold('  PLAYBACK'),
     '    ' + chalk.yellow('Space') + '     Play/Pause automatic stepping',
     '    ' + chalk.yellow('+') + '         Increase speed (faster)',
     '    ' + chalk.yellow('-') + '         Decrease speed (slower)',
     '    ' + chalk.yellow('r') + '         Reset to beginning',
     '',
-    chalk.bold.white('  TESTS'),
+    chalk.bold('  TESTS'),
     '    ' + chalk.yellow('n') + '         Jump to next test',
     '    ' + chalk.yellow('N') + '         Jump to previous test',
     '',
-    chalk.bold.white('  OTHER'),
+    chalk.bold('  OTHER'),
     '    ' + chalk.yellow('?') + '         Toggle this help',
     '    ' + chalk.yellow('q / Esc') + '   Quit',
     '',
     chalk.gray('  ' + '\u2500'.repeat(40)),
     '',
-    chalk.bold.white('  EVENT LOOP PHASES'),
+    chalk.bold('  EVENT LOOP PHASES'),
     '    ' + chalk.green('\u25CF Synchronous') + '   Main script execution',
     '    ' + chalk.cyan('\u25CF Microtasks') + '    Promise callbacks, queueMicrotask',
-    '    ' + chalk.yellow('\u25CF Macrotasks') + '   setTimeout, setInterval callbacks',
+    '    ' + chalk.redBright('\u25CF Macrotasks') + '   setTimeout, setInterval callbacks',
     '',
-    chalk.bold.white('  QUEUE INDICATORS'),
+    chalk.bold('  QUEUE INDICATORS'),
     '    ' + chalk.cyan('\u25CF') + ' Promise/then/await',
-    '    ' + chalk.yellow('\u25D4') + ' setTimeout',
-    '    ' + chalk.yellow('\u25D1') + ' setInterval',
+    '    ' + chalk.redBright('\u25D4') + ' setTimeout',
+    '    ' + chalk.redBright('\u25D1') + ' setInterval',
     '    ' + chalk.cyan('\u25CB') + ' queueMicrotask',
     '    ' + chalk.magenta('\u25C8') + ' process.nextTick',
     '',
@@ -824,8 +824,8 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
         const typeIcon = getTypeIcon(val);
         const nameText = isChanged 
           ? chalk.bgYellow.black.bold(' ' + name + ' ')
-          : chalk.bold.white(name);
-        const valText = isChanged ? chalk.yellowBright(val) : val;
+          : chalk.bold(name);
+        const valText = isChanged ? chalk.magentaBright(val) : val;
         return ' ' + typeIcon + ' ' + nameText + ' = ' + valText;
       });
   const memoryContent = sliceContent(memoryLines, 1, memoryContentH, leftContentW, scrollOffsetsRef);
@@ -839,7 +839,7 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
         const isTop = i === state.callStack.length - 1;
         const indent = '\u2502 '.repeat(i);
         const prefix = isTop ? chalk.green('\u25B6') : chalk.gray('\u2502');
-        const text = isTop ? chalk.bold.white(s) : chalk.gray(s);
+        const text = isTop ? chalk.bold(s) : chalk.gray(s);
         return ' ' + indent + prefix + ' ' + text;
       });
   const callStackContent = sliceContent(callStackLines, 4, callStackContentH, rightContentW, scrollOffsetsRef);
@@ -859,7 +859,7 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
     : state.macroQueue.map((item, i) => {
         const badge = getTaskBadge(item.label);
         const isFirst = i === 0;
-        const text = isFirst ? chalk.bold.yellowBright(item.label) : item.label;
+        const text = isFirst ? chalk.bold.redBright(item.label) : item.label;
         return ' ' + badge + ' ' + (i + 1) + '. ' + text;
       });
   const macroContent = sliceContent(macroLines, 6, macroContentH, queueContentW, scrollOffsetsRef);
@@ -871,7 +871,7 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
   const stepLabel = currentStep < 0 ? '0' : String(currentStep + 1);
   const playIcon = playing 
     ? chalk.green('\u25B6') + ' Playing' 
-    : chalk.yellow('\u23F8') + ' Paused';
+    : chalk.gray('\u23F8') + ' Paused';
   const testInfo = state.currentTest ? '  Test: ' + chalk.bold(state.currentTest) : '';
   
   // Phase indicator with color
@@ -884,10 +884,10 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
   const speedVisual = chalk.cyan('\u25AE'.repeat(filledBars)) + chalk.gray('\u25AF'.repeat(speedBars - filledBars));
   
   const headerText =
-    ' ' + chalk.bold.white('Event Loop Visualizer') + '  ' +
+    ' ' + chalk.bold('Event Loop Visualizer') + '  ' +
     chalk.gray('Step ') + chalk.bold(stepLabel + '/' + totalSteps) + '  ' +
     phaseIndicator + '  ' +
-    playIcon + '  ' + speedVisual + ' ' + speed + 'ms' + testInfo;
+    playIcon + '  ' + speedVisual + ' ' + speed + 'ms';
 
   // Progress bar for timeline
   const progressBarWidth = Math.floor(cols / 3);
@@ -943,9 +943,9 @@ function App({ events, sourceCode, sourcePath, focusFile }) {
           h(Panel, { label: 'Microtask Queue', color: 'cyan', focused: focusIndex === 5,
             lines: microContent, width: microQueueWidth, height: queuesHeight, isActive: isMicroActive,
             badge: state.microQueue.length > 0 ? { text: String(state.microQueue.length), color: 'cyan' } : null }),
-          h(Panel, { label: 'Macrotask Queue', color: 'yellow', focused: focusIndex === 6,
+          h(Panel, { label: 'Macrotask Queue', color: 'redBright', focused: focusIndex === 6,
             lines: macroContent, width: macroQueueWidth, height: queuesHeight, isActive: isMacroActive,
-            badge: state.macroQueue.length > 0 ? { text: String(state.macroQueue.length), color: 'yellow' } : null }),
+            badge: state.macroQueue.length > 0 ? { text: String(state.macroQueue.length), color: 'redBright' } : null }),
         ),
         h(Panel, { label: 'Event Log', color: 'blue', focused: focusIndex === 3,
           lines: eventLogContent, height: eventLogHeight, width: rightColWidth,
