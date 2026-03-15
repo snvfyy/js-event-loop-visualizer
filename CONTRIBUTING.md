@@ -73,7 +73,6 @@ tests/
   classify.test.js     → Unit tests for process classification
   transform.test.js    → Tests for AST-based source transformation
   integration.test.js  → End-to-end tests via runner.js fork
-  demo.test.js         → Vitest demo for manual TUI testing
 examples/              → Example scripts for testing and demos
 ```
 
