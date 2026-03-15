@@ -15,16 +15,13 @@ import { createRequire } from 'node:module';
 const _require = createRequire(import.meta.url);
 const { getTransformInsertions } = _require('./transform.js');
 
-const MagicString = _require('magic-string');
-
-// Resolve magic-string from Vite's own dependencies
 let MagicString;
 try {
-  const vitePath = require.resolve('vite');
+  const vitePath = _require.resolve('vite');
   const viteRequire = createRequire(vitePath);
   MagicString = viteRequire('magic-string').default || viteRequire('magic-string');
 } catch {
-  MagicString = require('magic-string');
+  MagicString = _require('magic-string');
 }
 
 const OWN_DIR = new URL('.', import.meta.url).pathname;
