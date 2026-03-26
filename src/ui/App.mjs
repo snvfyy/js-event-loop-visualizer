@@ -28,6 +28,75 @@ import { highlightSyntax } from "./syntax-highlight.mjs";
 
 const h = createElement;
 
+/** Updates displayFileRef based on the current event's file context. */
+function updateDisplayFile(
+  displayFileRef,
+  { focusFile, isExternal, eventFile, getSourceLines }
+) {
+  if (focusFile && isExternal) {
+    displayFileRef.current = focusFile;
+  } else if (
+    eventFile &&
+    !pathsMatch(eventFile, displayFileRef.current || "")
+  ) {
+    if (getSourceLines(eventFile)) displayFileRef.current = eventFile;
+  }
+}
+
+/** Returns the source panel label and color based on file navigation state. */
+function getSourceLabel({
+  isExternal,
+  isExternalFile,
+  displayFileName,
+  eventFile,
+  focusFile,
+  displayFile,
+  phaseColor,
+}) {
+  const externalFileName =
+    isExternal && eventFile ? eventFile.split(/[\/\\]/).pop() : null;
+
+  let sourceLabel;
+  if (isExternal && displayFile === focusFile) {
+    sourceLabel =
+      "Source: " +
+      (displayFileName || "?") +
+      " \u2192 " +
+      (externalFileName || "?");
+  } else if (isExternalFile) {
+    sourceLabel = "Source: \u21AA " + displayFileName;
+  } else {
+    sourceLabel = "Source: " + (displayFileName || "untitled");
+  }
+
+  const sourceColor = isExternalFile ? "gray" : phaseColor;
+  return { sourceLabel, sourceColor };
+}
+
+/** Determines which line to highlight in the source panel. */
+function getHighlightLine({
+  displayLines,
+  isExternal,
+  displayFile,
+  focusFile,
+  eventFocusLine,
+  evt,
+}) {
+  if (!displayLines) return { highlightLine: null, highlightExternal: false };
+
+  if (isExternal && displayFile === focusFile) {
+    return { highlightLine: eventFocusLine || null, highlightExternal: true };
+  }
+
+  const fileMatches =
+    !evt?.file || evt.file === displayFile || pathsMatch(evt.file, displayFile);
+  if (evt?.line && displayFile && fileMatches) {
+    return { highlightLine: evt.line, highlightExternal: false };
+  }
+
+  return { highlightLine: null, highlightExternal: false };
+}
+
 export function App({ events, sourceCode, sourcePath, focusFile }) {
   const { stdout } = useStdout();
 
@@ -118,7 +187,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
 
   const callStackHeight = Math.max(
     4,
-    Math.round(mainHeight * CALL_STACK_RATIO),
+    Math.round(mainHeight * CALL_STACK_RATIO)
   );
   const queuesHeight = Math.max(4, Math.round(mainHeight * QUEUES_RATIO));
   const eventLogHeight = mainHeight - callStackHeight - queuesHeight;
@@ -152,15 +221,13 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
   const isExternal = evt && evt.external;
   const eventFocusLine = evt && evt.focusLine;
 
-  // Multi-file navigation
-  if (focusFile && isExternal) {
-    displayFileRef.current = focusFile;
-  } else if (
-    eventFile &&
-    !pathsMatch(eventFile, displayFileRef.current || "")
-  ) {
-    if (getSourceLines(eventFile)) displayFileRef.current = eventFile;
-  }
+  // --- Determine which source file to display ---
+  updateDisplayFile(displayFileRef, {
+    focusFile,
+    isExternal,
+    eventFile,
+    getSourceLines,
+  });
 
   const displayLines =
     getSourceLines(displayFileRef.current) || getSourceLines(sourcePath);
@@ -169,46 +236,32 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     : null;
   const isExternalFile =
     focusFile && displayFileRef.current && displayFileRef.current !== focusFile;
-  const externalFileName =
-    isExternal && eventFile ? eventFile.split(/[\/\\]/).pop() : null;
 
-  let sourceLabel;
-  if (isExternal && displayFileRef.current === focusFile) {
-    sourceLabel =
-      "Source: " +
-      (displayFileName || "?") +
-      " \u2192 " +
-      (externalFileName || "?");
-  } else if (isExternalFile) {
-    sourceLabel = "Source: \u21AA " + displayFileName;
-  } else {
-    sourceLabel = "Source: " + (displayFileName || "untitled");
-  }
-  const sourceColor = isExternalFile ? "gray" : phaseTheme.primary;
+  // --- Source panel label ---
+  const { sourceLabel, sourceColor } = getSourceLabel({
+    isExternal,
+    isExternalFile,
+    displayFileName,
+    eventFile,
+    focusFile,
+    displayFile: displayFileRef.current,
+    phaseColor: phaseTheme.primary,
+  });
 
-  // Highlighted source line
-  let highlightLine = null;
-  let highlightExternal = false;
-  if (displayLines) {
-    if (isExternal && displayFileRef.current === focusFile) {
-      highlightLine = eventFocusLine || null;
-      highlightExternal = true;
-    } else if (
-      evt &&
-      evt.line &&
-      displayFileRef.current &&
-      (!evt.file ||
-        evt.file === displayFileRef.current ||
-        pathsMatch(evt.file, displayFileRef.current))
-    ) {
-      highlightLine = evt.line;
-    }
-  }
+  // --- Highlighted source line ---
+  const { highlightLine, highlightExternal } = getHighlightLine({
+    displayLines,
+    isExternal,
+    displayFile: displayFileRef.current,
+    focusFile,
+    eventFocusLine,
+    evt,
+  });
 
   if (highlightLine) {
     scrollOffsetsRef.current[0] = Math.max(
       0,
-      highlightLine - 1 - SCROLL_OFFSET_LINES,
+      highlightLine - 1 - SCROLL_OFFSET_LINES
     );
   }
 
@@ -236,7 +289,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
         formatted = chalk.gray(num) + "  " + highlightSyntax(line);
       }
       sourceContent.push(
-        leftContentW > 0 ? truncateAnsi(formatted, leftContentW) : formatted,
+        leftContentW > 0 ? truncateAnsi(formatted, leftContentW) : formatted
       );
     }
   } else {
@@ -262,7 +315,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     2,
     consoleContentH,
     leftContentW,
-    scrollOffsetsRef,
+    scrollOffsetsRef
   );
 
   // Memory panel with change detection
@@ -297,7 +350,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     1,
     memoryContentH,
     leftContentW,
-    scrollOffsetsRef,
+    scrollOffsetsRef
   );
 
   const eventLogContent = sliceContent(
@@ -305,7 +358,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     3,
     eventLogContentH,
     rightContentW,
-    scrollOffsetsRef,
+    scrollOffsetsRef
   );
 
   const callStackLines =
@@ -323,7 +376,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     4,
     callStackContentH,
     rightContentW,
-    scrollOffsetsRef,
+    scrollOffsetsRef
   );
 
   const microLines =
@@ -340,7 +393,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     5,
     microContentH,
     queueContentW,
-    scrollOffsetsRef,
+    scrollOffsetsRef
   );
 
   const macroLines =
@@ -357,7 +410,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
     6,
     macroContentH,
     queueContentW,
-    scrollOffsetsRef,
+    scrollOffsetsRef
   );
 
   // Header / footer
@@ -447,7 +500,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
         borderColor: phaseTheme.primary,
         height: headerHeight,
       },
-      h(Text, { bold: true, wrap: "truncate" }, headerText),
+      h(Text, { bold: true, wrap: "truncate" }, headerText)
     ),
 
     h(
@@ -489,7 +542,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
           lines: consoleContent,
           height: consoleHeight,
           width: leftColWidth,
-        }),
+        })
       ),
 
       h(
@@ -546,7 +599,7 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
               state.macroQueue.length > 0
                 ? { text: String(state.macroQueue.length), color: "redBright" }
                 : null,
-          }),
+          })
         ),
         h(Panel, {
           label: "Event Log",
@@ -559,16 +612,16 @@ export function App({ events, sourceCode, sourcePath, focusFile }) {
             state.log.length > 0
               ? { text: String(state.log.length), color: "blue" }
               : null,
-        }),
-      ),
+        })
+      )
     ),
 
     h(
       Box,
       { borderStyle: "single", borderColor: "gray", height: footerHeight },
-      h(Text, { wrap: "truncate" }, footerText),
+      h(Text, { wrap: "truncate" }, footerText)
     ),
 
-    showHelp && h(HelpOverlay, { width: cols, height: rows }),
+    showHelp && h(HelpOverlay, { width: cols, height: rows })
   );
 }

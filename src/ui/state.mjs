@@ -157,16 +157,5 @@ export function applyEvent(state, event) {
 }
 
 export function cloneState(s) {
-  return {
-    callStack: s.callStack.slice(),
-    microQueue: s.microQueue.map(item => ({ ...item })),
-    macroQueue: s.macroQueue.map(item => ({ ...item })),
-    console: s.console.slice(),
-    log: s.log.slice(),
-    phase: s.phase,
-    memory: new Map(s.memory),
-    startTs: s.startTs,
-    prevTs: s.prevTs,
-    currentTest: s.currentTest,
-  };
+  return structuredClone(s);
 }
